@@ -1,0 +1,346 @@
+---
+title: "Project2"
+author: "Ruixin Chen"
+date: "2024-04-12"
+output: html_document
+---
+Project2:
+```{r echo=FALSE}
+```
+1. make data in work place
+```{r echo=FALSE}
+rm(list=ls())
+library(NHANES)
+data("NHANES")
+ls(NHANES)
+NHANES<-NHANES[!duplicated(NHANES$ID),]
+library(dplyr)
+library(ggplot2)
+library(ISLR2)
+library(MASS)
+library(gvlma)
+library(car)
+library(nortest)
+read.directory<-"F:/"
+source(paste(read.directory,"SD_pop.R",sep=""))
+```
+2.descriptive statistics for these data
+```{r echo=FALSE}
+df<-data.frame("age"=NHANES$Age,
+               "Gender"=NHANES$Gender,
+               "MALE_sex"=ifelse(NHANES$Gender=="male",1,0),
+               "Height"=NHANES$Height,
+               "Weight"=NHANES$Weight,
+               "BMI"=NHANES$BMI,
+               "Diabetes"=NHANES$Diabetes,
+               "Diabetes_Yes"=ifelse(NHANES$Diabetes=="Yes",1,0),
+               "SBP"=NHANES$BPSys1,
+               "DBP"=NHANES$BPDia1,
+               "PhysActive"=NHANES$PhysActive,
+               "PhysActive_Yes"=ifelse(NHANES$PhysActive=="Yes",1,0),
+               "BMI_High"=ifelse(NHANES$BMI>30,1,0),
+               "BMI_Normal"=ifelse(NHANES$BMI>18.5 & NHANES$BMI<25,1,0))
+df$MALE_sex_factor<-factor(df$MALE_sex,levels=c(0,1),labels=c("female","male"))
+df$Diabetes_Yes_factor<-factor(df$Diabetes_Yes,levels=c(0,1),labels=c("No","Yes"))
+df$PhysActive_Yes_factor<-factor(df$PhysActive_Yes,levels=c(0,1),labels=c("No","Yes"))
+df$BMI_High_factor<-factor(df$BMI_High,levels=c(0,1),labels=c("No","Yes"))
+df$BMI_Normal_factor<-factor(df$BMI_Normal,levels=c(0,1),labels=c("No","Yes"))
+
+summary(df$age, na.rm=T)
+mean(df$age, na.rm=T)
+sd(df$age, na.rm=T)
+sem_age <- sd(df$age, na.rm=T) / sqrt(length(df$age))
+age_CI_LL_95 <- mean(df$age, na.rm=T) - sem_age * 1.96
+age_CI_UL_95 <- mean(df$age, na.rm=T) + sem_age* 1.96
+paste(round(mean(df$age),2), " (95% CI ",round(age_CI_LL_95,2), " to ",round(age_CI_UL_95,2), ")")
+
+
+summary(df$Height, na.rm=T)
+mean(df$Height, na.rm=T)
+sd(df$Height, na.rm=T)
+use_Height<-df$Height[!is.na(df$Height)]
+sem_Height <- sd(use_Height)/sqrt(length(use_Height))
+Height_CI_LL_95 <- mean(use_Height) - sem_Height * 1.96
+Height_CI_UL_95 <- mean(use_Height) + sem_Height* 1.96
+paste(round(mean(use_Height),2), " (95% CI ",round(Height_CI_LL_95,2), " to ",round(Height_CI_UL_95,2), ")")
+
+summary(df$Weight, na.rm=T)
+mean(df$Weight, na.rm=T)
+sd(df$Weight, na.rm=T)
+use_Weight<-df$Weight[!is.na(df$Weight)]
+sem_Weight <- sd(use_Weight)/sqrt(length(use_Weight))
+Weight_CI_LL_95 <- mean(use_Weight) - sem_Weight * 1.96
+Weight_CI_UL_95 <- mean(use_Weight) + sem_Height* 1.96
+paste(round(mean(use_Weight),2), " (95% CI ",round(Weight_CI_LL_95,2), " to ",round(Weight_CI_UL_95,2), ")")
+
+
+summary(df$DBP, na.rm=T)
+mean(df$DBP,na.rm=T)
+sd(df$DBP,na.rm=T)
+use_DBP<-df$DBP[!is.na(df$DBP)]
+sem_DBP <- sd(use_DBP) / sqrt(length(use_DBP))
+DBP_CI_LL_95 <- mean(use_DBP) - sem_DBP * 1.96
+DBP_CI_UL_95 <- mean(use_DBP) + sem_DBP* 1.96
+paste(round(mean(use_DBP),2), " (95% CI ",round(DBP_CI_LL_95,2), " to ",round(DBP_CI_UL_95,2), ")")
+
+summary(df$SBP, na.rm=T)
+mean(df$SBP,na.rm=T)
+sd(df$SBP,na.rm=T)
+use_SBP<-df$SBP[!is.na(df$SBP)]
+sem_SBP <- sd(use_SBP) / sqrt(length(use_SBP))
+SBP_CI_LL_95 <- mean(use_SBP) - sem_SBP * 1.96
+SBP_CI_UL_95 <- mean(use_SBP) + sem_SBP* 1.96
+paste(round(mean(use_SBP),2), " (95% CI ",round(SBP_CI_LL_95,2), " to ",round(SBP_CI_UL_95,2), ")")
+
+
+n<-length(df$MALE_sex)
+p<-sum(df$MALE_sex)/length(df$MALE_sex)
+q<-1-p
+sem_sex <- sqrt(p * q/n)
+sex_CI_LL_95 <- p - sem_sex * 1.96
+sex_CI_UL_95 <- p + sem_sex* 1.96
+paste(round(p,3), " (95% CI ",round(sex_CI_LL_95,3), " to ",round(sex_CI_UL_95,3), ")")
+length(df$Gender=="male") /  length(df$Gender)
+length(df$Gender=="female") /  length(df$Gender)
+
+n1<-length(df$Diabetes_Yes)
+p1<-sum(df$Diabetes_Yes)/length(df$Diabetes_Yes)
+q1<-1-p1
+sem_Diabetes <- sqrt(p1 * q1/n1)
+Diabetes_CI_LL_95 <- p1 - sem_Diabetes * 1.96
+Diabetes_CI_UL_95 <- p1 + sem_Diabetes* 1.96
+paste(round(p1,3), " (95% CI ",round(Diabetes_CI_LL_95,3), " to ",round(Diabetes_CI_UL_95,3), ")")
+length(df$Diabetes=="Yes") /  length(df$Diabetes)
+length(df$Diabetes=="No") /  length(df$Diabetes)
+
+n2<-length(df$PhysActive_Yes)
+p2<-sum(df$PhysActive_Yes)/length(df$PhysActive_Yes)
+q2<-1-p2
+sem_PhysActive <- sqrt(p2 * q2/n2)
+PhysActive_CI_LL_95 <- p2 - sem_PhysActive * 1.96
+PhysActive_CI_UL_95 <- p2 + sem_PhysActive* 1.96
+paste(round(p2,3), " (95% CI ",round(PhysActive_CI_LL_95,3), " to ",round(PhysActive_CI_UL_95,3), ")")
+length(df$PhysActive=="Yes") /  length(df$PhysActive)
+length(df$PhysActive=="No") /  length(df$PhysActive)
+```
+3.plot the pictures to make the descriptive statistics be visualization
+```{r echo=FALSE}
+```
+Make a sample of data of 500 person and use this sample to compare with the data from whole population.
+```{r echo=FALSE}
+table1<-summary(df)
+print("table1")
+print(table1)
+hist(df$age,col="lightblue",main="Age analysis for whole dataframe1")
+abline(v=mean(df$age,na.rm=T),col="purple")
+abline(v=c(age_CI_LL_95,age_CI_UL_95),col="purple",lty=2)
+
+hist(df$Height,col="pink",main="Height analysis for whole dataframe1")
+abline(v=mean(df$Height,na.rm=T),col="purple")
+abline(v=c(Height_CI_LL_95,Height_CI_UL_95),col="purple",lty=2)
+
+
+hist(df$Weight,col="lightblue",main="Weight analysis for whole dataframe1")
+abline(v=mean(df$Weight,na.rm=T),col="purple")
+abline(v=c(Weight_CI_LL_95,Weight_CI_UL_95),col="purple",lty=2)
+
+
+
+hist(df$SBP,col="pink",main="SBP analysis for whole dataframe1")
+abline(v=mean(df$SBP,na.rm=T),col="purple")
+abline(v=c(SBP_CI_LL_95,SBP_CI_UL_95),col="purple",lty=2)
+
+hist(df$DBP,col="lightblue",main="DBP analysis for whole dataframe1")
+abline(v=mean(df$DBP,na.rm=T),col="purple")
+abline(v=c(DBP_CI_LL_95,DBP_CI_UL_95),col="purple",lty=2)
+
+
+boxplot(df$SBP,col="purple",main="SBP")
+boxplot(df$SBP ~ df$PhysActive,col="lightgreen",main="SBP Be Influent by PhysActive ")
+
+boxplot(df$DBP,col="orange",main="DBP")
+boxplot(df$DBP ~ df$PhysActive,col="lightblue",main="DBP Be Influent by PhysActive ")
+
+boxplot(df$SBP,col="purple",main="SBP")
+boxplot(df$SBP ~ df$BMI_Normal_factor,col="lightgreen",main="SBP Be Influent by Normal BMI ")
+
+boxplot(df$DBP,col="orange",main="DBP")
+boxplot(df$DBP ~ df$BMI_Normal_factor,col="lightblue",main="DBP Be Influent by Normal BMI ")
+
+boxplot(df$SBP,col="purple",main="SBP")
+boxplot(df$SBP ~ df$BMI_High_factor,col="lightgreen",main="SBP Be Influent by High BMI")
+
+boxplot(df$DBP,col="orange",main="DBP")
+boxplot(df$DBP ~ df$BMI_High_factor,col="lightblue",main="DBP Be Influent by High BMI")
+
+selection1<-sample(NHANES$ID[NHANES$BMI > 30],500)
+df1<-data.frame("ID"=NHANES$ID[NHANES$ID %in% selection1],
+                "BMI"=NHANES$BMI[NHANES$ID %in% selection1],
+                "SBP"=NHANES$BPSys1[NHANES$ID %in% selection1],
+                "DBP"=NHANES$BPDia1[NHANES$ID %in% selection1])
+summary(df1$DBP)
+mean(df1$DBP,na.rm=T)
+sd(df1$DBP,na.rm=T)
+mean(df$SBP,na.rm=T)
+sd(df$SBP,na.rm=T)
+use_DBP<-df1$DBP[!is.na(df1$DBP)]
+sem_DBP <- sd(use_DBP) / sqrt(length(use_DBP))
+DBP_CI_LL_95 <- mean(use_DBP) - sem_DBP * 1.96
+DBP_CI_UL_95 <- mean(use_DBP) + sem_DBP* 1.96
+paste(round(mean(use_DBP),2), " (95% CI ",round(DBP_CI_LL_95,2), " to ",round(DBP_CI_UL_95,2), ")")
+
+summary(df1$SBP)
+mean(df1$SBP,na.rm=T)
+sd(df1$SBP,na.rm=T)
+mean(df$SBP,na.rm=T)
+sd(df$SBP,na.rm=T)
+use_SBP<-df1$SBP[!is.na(df1$SBP)]
+sem_SBP <- sd(use_SBP) / sqrt(length(use_SBP))
+SBP_CI_LL_95 <- mean(use_SBP) - sem_SBP * 1.96
+SBP_CI_UL_95 <- mean(use_SBP) + sem_SBP* 1.96
+paste(round(mean(use_SBP),2), " (95% CI ",round(SBP_CI_LL_95,2), " to ",round(SBP_CI_UL_95,2), ")")
+
+
+
+hist(df$SBP,main="SBP for whole people")
+hist(df1$SBP,col="pink",main="SBP for high BMI people")
+abline(v=mean(df1$SBP,na.rm=T),col="purple")
+abline(v=c(SBP_CI_LL_95,SBP_CI_UL_95),col="purple",lty=2)
+abline(v=mean(df$SBP,na.rm=T),col="darkgreen")
+
+hist(df$DBP,main="DBP for whole people")
+hist(df1$DBP,col="lightblue",main="dBP for high BMI people")
+abline(v=mean(df1$DBP,na.rm=T),col="purple")
+abline(v=c(DBP_CI_LL_95,DBP_CI_UL_95),col="purple",lty=2)
+abline(v=mean(df$DBP,na.rm=T),col="red")
+
+selection2<-sample(NHANES$ID[NHANES$BMI>=18.5 & NHANES$BMI <=25],500)
+df2<-data.frame("ID"=NHANES$ID[NHANES$ID %in% selection2],
+                "BMI"=NHANES$BMI[NHANES$ID %in% selection2],
+                "SBP"=NHANES$BPSys1[NHANES$ID %in% selection2],
+                "DBP"=NHANES$BPDia1[NHANES$ID %in% selection2])
+summary(df2$DBP)
+mean(df2$DBP,na.rm=T)
+sd(df2$DBP,na.rm=T)
+mean(df$SBP,na.rm=T)
+sd(df$SBP,na.rm=T)
+use_DBP<-df2$DBP[!is.na(df2$DBP)]
+sem_DBP <- sd(use_DBP) / sqrt(length(use_DBP))
+DBP_CI_LL_95 <- mean(use_DBP) - sem_DBP * 1.96
+DBP_CI_UL_95 <- mean(use_DBP) + sem_DBP* 1.96
+paste(round(mean(use_DBP),2), " (95% CI ",round(DBP_CI_LL_95,2), " to ",round(DBP_CI_UL_95,2), ")")
+
+summary(df2$SBP)
+mean(df2$SBP,na.rm=T)
+sd(df2$SBP,na.rm=T)
+mean(df$SBP,na.rm=T)
+sd(df$SBP,na.rm=T)
+use_SBP<-df2$SBP[!is.na(df2$SBP)]
+sem_SBP <- sd(use_SBP) / sqrt(length(use_SBP))
+SBP_CI_LL_95 <- mean(use_SBP) - sem_SBP * 1.96
+SBP_CI_UL_95 <- mean(use_SBP) + sem_SBP* 1.96
+paste(round(mean(use_SBP),2), " (95% CI ",round(SBP_CI_LL_95,2), " to ",round(SBP_CI_UL_95,2), ")")
+
+hist(df$SBP,main="SBP for whole people")
+hist(df2$SBP,col="pink",main="SBP for normal BMI people")
+abline(v=mean(df2$SBP,na.rm=T),col="purple")
+abline(v=c(SBP_CI_LL_95,SBP_CI_UL_95),col="purple",lty=2)
+abline(v=mean(df$SBP,na.rm=T),col="darkgreen")
+
+hist(df$DBP,main="DBP for whole people")
+hist(df2$DBP,col="lightblue",main="DBP for normal BMI people")
+abline(v=mean(df2$DBP,na.rm=T),col="purple")
+abline(v=c(DBP_CI_LL_95,DBP_CI_UL_95),col="purple",lty=2)
+abline(v=mean(df$DBP,na.rm=T),col="red")
+```
+We know the relationship between BMI and DBP,SBP. It is obviously that for normal BMI people, their SBP is usually lower than the mean value of SBP of whole people. And for the DBP, it is same situation, but for high BMI people, their SBP is usually higher than the mean value of SBP of whole people. And for the DBP, it is same situation.
+```{r echo=FALSE}
+```
+4.advanced statistical
+```{r echo=FALSE}
+Test <- as.data.frame(df[,c("BMI", "SBP","DBP")])
+mlr <- lm(BMI ~ SBP +DBP, Test)
+summary(mlr)
+```
+I use model and significance testing, I use the lm() function to build this model.Now let us see the scatter plots, one is about relationship between BMI and SBP, another one is about relationship between BMI and DBP.
+```{r echo=FALSE}
+par(mfrow = c(1, 2))
+plot(Test$SBP, Test$BMI)
+plot(Test$DBP, Test$BMI)
+```
+
+```{r echo=FALSE}
+step(mlr)
+new.mlr<-lm(BMI ~ SBP +DBP,Test)
+summary(new.mlr)
+library(MASS)
+boxcox_result <- boxcox(BMI ~ SBP + DBP, data = Test)
+print(boxcox_result)
+best_lambda <- boxcox_result$x[which.max(boxcox_result$y)]
+Test$transformed_BMI <- ifelse(best_lambda == 0, log(Test$BMI), (Test$BMI^best_lambda - 1) / best_lambda)
+new_mlr_boxcox <- lm(transformed_BMI ~ SBP + DBP, data = Test)
+summary(new_mlr_boxcox)
+```
+multicollinearity
+```{r echo=FALSE}
+Test_renew<-na.omit(Test)
+kappa(Test_renew[, c("SBP","DBP")])
+kappa(new_mlr_boxcox)
+```
+The 13.06869 is very less than 100, but 702.9175 is still very close to 1000.We should change ths model.
+
+```{r echo=FALSE}
+glm_model <- glm(BMI ~ SBP + DBP, data = Test, family = gaussian(link = "log"))
+summary(glm_model)
+```
+
+```{r echo=FALSE}
+residuals_glm <- residuals(glm_model)
+```
+
+```{r echo=FALSE}
+plot(glm_model, which = 1)
+```
+
+```{r echo=FALSE}
+glm_model <- glm(BMI ~ SBP + DBP, family = gaussian(link = "log"), data =Test)
+```
+
+```{r echo=FALSE}
+boxplot(residuals(glm_model))
+outlier_indices <- which(abs(residuals(glm_model)) > 1.5 * IQR(residuals(glm_model)))
+clean_data <- Test[-outlier_indices, ]
+clean_data <- na.omit(clean_data)
+clean_model <- glm(BMI ~ SBP + DBP, family = gaussian(link = "log"), data = clean_data)
+summary(clean_model)
+```
+
+```{r echo=FALSE}
+qqnorm(residuals(clean_model))
+qqline(residuals(clean_model))
+```
+```{r echo=FALSE}
+library(MASS)
+lambdas <- seq(-2, 2, by = 0.1)
+log<- sapply(lambdas, function(l) {
+  if (l == 0) {
+    log<- sum(log(clean_data$BMI))
+  } else {
+    transformed <- (clean_data$BMI^l - 1) / l
+    log <- sum(log(transformed))
+  }
+  return(log)
+})
+best_lambda <- lambdas[which.max(log)]
+print(best_lambda)
+data_boxcox <- (clean_data$BMI^best_lambda - 1) /best_lambda
+hist(data_boxcox, breaks = 20, main = "Histogram of Box-Cox Transformed Data")
+plot(density(data_boxcox), main = "Density Plot of Box-Cox Transformed Data")
+summary(data_boxcox)
+summary(clean_model)
+```
+As we can see, the final model which pass the is BMI =2.8108238+0.0024075* SBP+0.0031793*DBP
+The effect of systolic blood pressure (SBP) and diastolic blood pressure (DBP) on BMI is significant, because their p-values are much smaller than 0.05.
+```{r echo=FALSE}
+```
+The final model is in a good fit, and its residuals approximating a normal distribution and a relatively low value of the goodness-of-fit index (AIC), finally indicating a good fit to the data.
